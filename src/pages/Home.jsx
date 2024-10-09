@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import books from "../images/books.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleRight } from "@fortawesome/free-solid-svg-icons";
@@ -14,12 +14,16 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 576);
   const [showMore, setShowMore] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const navigate = useNavigate(); // Hook to redirect users
 
   // Fetch favorites data
   useEffect(() => {
     let isMounted = true; // flag to track if the component is still mounted
     const fetchFavorites = async () => {
       const token = localStorage.getItem("token");
+      if (!token) {
+        return; // No token, no need to fetch favorites
+      }
       try {
         const response = await fetch(
           "http://localhost:8080/api/book/favorites",
@@ -41,7 +45,9 @@ export default function Home() {
       }
     };
     fetchFavorites();
-    return () => { isMounted = false; }; // cleanup function
+    return () => {
+      isMounted = false; // cleanup function
+    };
   }, []);
 
   // Function to check if a book is in favorites
@@ -50,6 +56,12 @@ export default function Home() {
   // Function to add a book to favorites
   const handleFavorite = async (bookId) => {
     const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please log in to add to favorites.");
+      navigate("/login"); // Redirect to login page if token is missing
+      return;
+    }
+
     try {
       const response = await fetch(
         `http://localhost:8080/api/book/add-to-favorites/${bookId}`,
@@ -61,6 +73,12 @@ export default function Home() {
           },
         }
       );
+
+      if (response.status === 401) {
+        toast.error("Please log in to add to favorites.");
+        navigate("/login"); // Redirect if unauthorized
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to add to favorites");
@@ -78,6 +96,12 @@ export default function Home() {
   // Function to remove a book from favorites
   const handleRemoveFavorite = async (bookId) => {
     const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please log in to remove from favorites.");
+      navigate("/login"); // Redirect to login page if token is missing
+      return;
+    }
+
     try {
       const response = await fetch(
         `http://localhost:8080/api/book/remove-from-favorites/${bookId}`,
@@ -89,6 +113,12 @@ export default function Home() {
           },
         }
       );
+
+      if (response.status === 401) {
+        toast.error("Please log in to remove from favorites.");
+        navigate("/login"); // Redirect if unauthorized
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to remove from favorites");
@@ -137,7 +167,9 @@ export default function Home() {
       }
     };
     fetchData();
-    return () => { isMounted = false; }; // cleanup function
+    return () => {
+      isMounted = false; // cleanup function
+    };
   }, []);
 
   return (
@@ -171,11 +203,7 @@ export default function Home() {
                     color="green"
                   />
                 </button>
-                {isMobile ? (
-                  <img src={books} alt="books" className="book-icon" />
-                ) : (
-                  <></>
-                )}
+                <img src={books} alt="books" className="book-icon" />
               </>
             ) : (
               <button className="special-button">
